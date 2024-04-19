@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+aiofiles
+pymongo
+pytest
+python-dateutil
+setuptools
+sqlalchemy
+alembic
+psycopg2-binary

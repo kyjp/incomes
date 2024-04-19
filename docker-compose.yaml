@@ -1,0 +1,65 @@
+version: '3.7'
+
+services:
+  app:
+    container_name: FastAPI
+    build: 
+      context: ./backend
+      dockerfile: ./Dockerfile
+    volumes:
+      - ./backend:/var/www/html
+    ports:
+      - "9004:9004"
+    command: wait-for-it.sh postgres:5432 --timeout=30 -- uvicorn main:app --reload --host 0.0.0.0 --port 9004
+    environment:
+      POSTGRES_NAME: postgresql
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password
+      POSTGRES_CONTAINER_NAME: postgres
+      POSTGRES_PORT: 5432
+    depends_on:
+      - postgres
+    networks:
+      - fastapi-network
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres
+    ports:
+      - 5432:5432
+    volumes:
+      - ./docker/postgres/init.d:/docker-entrypoint-initdb.d
+      - ./docker/postgres/pgdata:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8"
+      POSTGRES_DB: income
+    hostname: postgres
+    restart: always
+    tty: true
+    user: root
+    networks:
+      - fastapi-network
+
+  pgadmin:
+    image: dpage/pgadmin4
+    restart: always
+    ports:
+      - 81:80
+    environment:
+      PGADMIN_DEFAULT_EMAIL: fastapi@example.com
+      PGADMIN_DEFAULT_PASSWORD: password
+    volumes:
+      - ./docker/pgadmin:/var/lib/pgadmin
+    depends_on:
+      - postgres
+    networks:
+      - fastapi-network
+
+networks:
+  fastapi-network:
+    driver: bridge
+
+    
+
