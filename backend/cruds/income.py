@@ -1,60 +1,45 @@
+from sqlalchemy.orm import Session
 from typing import Optional
 from schemas import IncomeCreate, IncomeUpdate
+from models import Income
 
-class Income:
-    def __init__(
-        self,
-        id: int,
-        price: int,
-        description: Optional[str]
-    ):
-        self.id = id
-        self.price = price
-        self.description = description
+def find_all(db: Session, user_id: int):
+    return db.query(Income).filter(Income.user_id == user_id).all()
 
-incomes = [
-    Income(1, 3475000, '令和2年度'),
-    Income(2, 3575000, '令和3年度'),
-    Income(3, 3700000, '令和4年度'),
-    Income(4, 3984000, '令和5年度'),
-]
+def find_by_id(db: Session, id: int, user_id: int):
+    return db.query(Income).filter(Income.id == id).filter(Income.user_id == user_id).first()
 
-def find_all():
-    return incomes
+def find_by_description(db: Session, description: str):
+    return db.query(Income).filter(Income.description.like(f"%{description}%")).all()
 
-def find_by_id(id: int):
-    for income in incomes:
-        if income.id == id:
-            return income
-    return None
+def find_by_year(db: Session, year: int):
+    return db.query(Income).filter(Income.year == year).all()
 
-def find_by_description(description: str):
-    filtered_incomes = []
-    for income in incomes:
-        if description in income.description:
-            filtered_incomes.append(income)
-    return filtered_incomes
-
-def create(income_create: IncomeCreate):
+def create(db: Session, income_create: IncomeCreate, user_id: int):
     new_income = Income(
-        len(incomes) + 1,
-        income_create.price,
-        income_create.description
+        **income_create.model_dump(),
+        user_id=user_id
     )
-    incomes.append(new_income)
+    db.add(new_income)
+    db.commit()
     return new_income
 
-def update(id: int, income_update: IncomeUpdate):
-    for income in incomes:
-        if income.id == id:
-            income.price = income.price if income_update.price is None else income_update.price
-            income.description = income.description if income_update.description is None else income_update.description
-    return None
+def update(db: Session, id: int, income_update: IncomeUpdate, user_id: int):
+    income = find_by_id(db, id, user_id)
+    if income is None:
+        return None
+    income.price = income.price if income_update.price is None else income_update.price
+    income.year = income.year if income_update.year is None else income_update.year
+    income.description = income.description if income_update.description is None else income_update.description
+    db.add(income)
+    db.commit()
+    return income
 
-def delete(id: int):
-    for i in range(len(incomes)):
-        if incomes[i].id == id:
-            delete_income = incomes.pop(i)
-            return delete_income
-    return None
+def delete(db: Session, id: int, user_id: int):
+    income = find_by_id(db, id, user_id)
+    if income is None:
+        return None
+    db.delete(income)
+    db.commit()
+    return income
 
